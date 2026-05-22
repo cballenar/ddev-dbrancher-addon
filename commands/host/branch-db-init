@@ -29,7 +29,7 @@ if [ -z "$DUMP_FILE" ] || [ ! -f "$DUMP_FILE" ]; then
 fi
 
 echo "Importing dump '$DUMP_FILE' into database '$DB_NAME'..."
-ddev import-db --target-db="$DB_NAME" --file="$DUMP_FILE"
+ddev import-db --database="$DB_NAME" --file="$DUMP_FILE"
 
 echo "Running Drupal updates and config import..."
 ddev drush updb -y

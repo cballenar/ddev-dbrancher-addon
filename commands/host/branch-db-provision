@@ -29,7 +29,9 @@ if [[ "$BRANCH" != "develop" && "$BRANCH" != "main" && "$BRANCH" != "master" && 
     
     # Safely prompt the user if they are running in an interactive terminal
     if exec < /dev/tty 2>/dev/null; then
-      read -p "Provision an isolated database for this branch? [y/N]: " PROVISION
+      echo -n "Provision an isolated database for this branch? [y/N] (Defaults to N in 10s): " > /dev/tty
+      read -t 10 PROVISION || PROVISION="n"
+      echo "" > /dev/tty
     else
       echo "No interactive terminal found. Skipping isolated database provisioning."
       PROVISION="n"
