@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Provisions an isolated database for the current Git branch.
+## Usage: branch-db-provision
+## Example: "ddev branch-db-provision"
+
+cd "$DDEV_APPROOT" || exit 1
+
+# Ensure DDEV project is running before attempting MySQL queries
+if ! ddev describe | grep -q 'OK'; then
+  echo "DDEV is not fully running. Skipping automatic database provisioning."
+  exit 0
+fi
+
+# Get the branch name
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# If we are on develop, main, or master, do nothing for provisioning
+if [[ "$BRANCH" != "develop" && "$BRANCH" != "main" && "$BRANCH" != "master" && "$BRANCH" != "HEAD" ]]; then
+  DB_NAME="db_$(echo "$BRANCH" | sed -e 's/[^a-zA-Z0-9_]/_/g')"
+
+  echo "Checking if DDEV database '$DB_NAME' exists..."
+
+  DB_EXISTS=$(ddev mysql -N -e "SHOW DATABASES LIKE '$DB_NAME';" | grep "$DB_NAME")
+
+  if [ -z "$DB_EXISTS" ]; then
+    echo "Database '$DB_NAME' does not exist."
+    
+    # Safely prompt the user if they are running in an interactive terminal
+    if exec < /dev/tty 2>/dev/null; then
+      read -p "Provision an isolated database for this branch? [y/N]: " PROVISION
+    else
+      echo "No interactive terminal found. Skipping isolated database provisioning."
+      PROVISION="n"
+    fi
+
+    if [[ "$PROVISION" =~ ^[Yy]$ ]]; then
+      echo "Provisioning a new isolated environment..."
+      echo "Creating database in MariaDB..."
+      ddev mysql -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
+      
+      echo "Calling ddev branch-db-init to populate the database..."
+      ddev branch-db-init "$DB_NAME"
+    else
+      echo "Skipped. Your Drupal site will safely fall back to the main DB."
+    fi
+  else
+    echo "Database '$DB_NAME' already exists. Switching active connection automatically."
+  fi
+fi

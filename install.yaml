@@ -1,0 +1,17 @@
+name: branch-isolation
+project_files:
+  - post-checkout
+  - settings.snippet.php
+  - commands
+post_install_actions:
+  - "mkdir -p ../.git/hooks"
+  - "cp post-checkout ../.git/hooks/post-checkout && chmod +x ../.git/hooks/post-checkout"
+  - |
+    # Inject the PHP routing logic if it doesn't already exist
+    if [ -f ../docroot/sites/default/settings.local.php ]; then
+      if ! grep -q "DDEV Branch-Routed Database Override" ../docroot/sites/default/settings.local.php 2>/dev/null; then
+        grep -v "ddev-generated" settings.snippet.php >> ../docroot/sites/default/settings.local.php
+        echo "Successfully injected database routing logic into settings.local.php!"
+      fi
+    fi
+  - "rm -f post-checkout settings.snippet.php"

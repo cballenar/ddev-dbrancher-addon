@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+# Automatically installed by DDEV Branch Isolation Add-on.
+# Arguments: $1: Previous HEAD ref, $2: New HEAD ref, $3: 1 if branch checkout, 0 if file checkout
+if [ "$3" != "1" ]; then
+  exit 0
+fi
+
+if ! command -v ddev &> /dev/null; then
+  exit 0
+fi
+
+ddev branch-db-provision
+ddev branch-db-drop orphaned

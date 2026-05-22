@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Drops the isolated database for a specified branch to free up space.
+## Usage: branch-db-drop <branch_name | current | orphaned>
+## Example: "ddev branch-db-drop orphaned"
+
+# When executing a ddev host command, $DDEV_APPROOT is the project root.
+cd "$DDEV_APPROOT" || exit 1
+
+if [ -z "$1" ]; then
+  echo "Error: A target must be specified."
+  echo "Usage: ddev branch-db-drop <branch_name | current | orphaned>"
+  exit 1
+fi
+
+TARGET="$1"
+
+if [ "$TARGET" == "orphaned" ]; then
+  echo "---"
+  echo "Scanning for orphaned isolated databases..."
+  # Get all local branches, EXCLUDING those that are tracking a deleted remote branch
+  ACTIVE_BRANCHES=$(git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$2 != "[gone]" {print $1}')
+  VALID_DBS=$(echo "$ACTIVE_BRANCHES" | sed -e 's/[^a-zA-Z0-9_]/_/g' | awk '{print "db_"$1}')
+  # Always keep default databases
+  VALID_DBS="$VALID_DBS db db_develop db_main db_master"
+
+  EXISTING_DBS=$(ddev mysql -N -e "SHOW DATABASES LIKE 'db\_%';" | grep -wv 'information_schema\|performance_schema\|mysql\|sys')
+
+  for EXIST_DB in $EXISTING_DBS; do
+    if ! echo "$VALID_DBS" | grep -qw "$EXIST_DB"; then
+      echo "Branch for database '$EXIST_DB' no longer exists locally (or was deleted remotely). Dropping database to free space..."
+      ddev mysql -e "DROP DATABASE \`$EXIST_DB\`;"
+    fi
+  done
+  exit 0
+fi
+
+if [ "$TARGET" == "current" ]; then
+  BRANCH=$(git rev-parse --abbrev-ref HEAD)
+else
+  BRANCH="$TARGET"
+fi
+
+if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
+  echo "Cannot delete main databases."
+  exit 1
+fi
+
+DB_NAME="db_$(echo "$BRANCH" | sed -e 's/[^a-zA-Z0-9_]/_/g')"
+
+echo "Dropping database '$DB_NAME'..."
+ddev mysql -e "DROP DATABASE IF EXISTS $DB_NAME;"
+echo "Database removed. Don't forget to delete the Git branch: git branch -D $BRANCH"
