@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Lists isolated databases created for branches.
+## Usage: branch-db-list
+## Example: "ddev branch-db-list"
+
+cd "$DDEV_APPROOT" || exit 1
+
+if ! ddev describe | grep -q 'OK'; then
+  echo "DDEV is not running. Cannot list databases."
+  exit 1
+fi
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+CURRENT_DB="db_$(echo "$CURRENT_BRANCH" | sed -e 's/[^a-zA-Z0-9_]/_/g')"
+
+# Get active branches (excluding [gone]) to determine which DBs are valid
+ACTIVE_BRANCHES=$(git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$2 != "[gone]" {print $1}')
+VALID_DBS=$(echo "$ACTIVE_BRANCHES" | sed -e 's/[^a-zA-Z0-9_]/_/g' | awk '{print "db_"$1}')
+VALID_DBS="$VALID_DBS db db_develop db_main db_master"
+
+EXISTING_DBS=$(ddev mysql -N -e "SHOW DATABASES LIKE 'db\_%';" | grep -wv 'information_schema\|performance_schema\|mysql\|sys')
+
+echo "--- Isolated Branch Databases ---"
+
+if [ -z "$EXISTING_DBS" ]; then
+  echo "No isolated branch databases found."
+  exit 0
+fi
+
+for DB in $EXISTING_DBS; do
+  if [ "$DB" == "$CURRENT_DB" ]; then
+    echo "🟢 $DB (Active: $CURRENT_BRANCH)"
+  elif [[ "$DB" == "db_develop" || "$DB" == "db_main" || "$DB" == "db_master" ]]; then
+    echo "🟡 $DB (Protected)"
+  elif echo "$VALID_DBS" | grep -qw "$DB"; then
+    echo "⚪ $DB"
+  else
+    echo "🔴 $DB (Orphaned - run 'ddev branch-db-drop orphaned' to clean up)"
+  fi
+done

@@ -16,6 +16,7 @@ ddev add-on get github-username/ddev-branch-databases
 ```
 
 ## Manual Commands
+- `ddev branch-db-list`: Lists all isolated databases and their statuses (Active, Orphaned, etc).
 - `ddev branch-db-provision`: Manually triggers the checkout provisioner.
 - `ddev branch-db-drop <branch_name>`: Drops the isolated database for a specific branch.
 - `ddev branch-db-drop current`: Drops the isolated database for your active branch.
