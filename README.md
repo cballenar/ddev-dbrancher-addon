@@ -5,9 +5,16 @@ A DDEV add-on that brings isolated, dynamic database routing to your Drupal feat
 ## Features
 - **Clones Database**: When checking out a feature branch, it will make a clone for that branch.
 - **Auto-Provisioning**: Prompts you `[y/N]` to clone your database when checking out new branches.
-- **Smart Garbage Collection**: Automatically sweeps MariaDB and deletes 8GB orphaned databases the moment their corresponding PR is merged and deleted on GitHub (via Git `[gone]` tracking).
 - **Private Hook Injection**: Injects the automation directly into your `.git/hooks/post-checkout` folder to avoid enforcing it upon teammates who don't want it.
 - **PHP Safe Routing**: Automatically appends the necessary PDO check to your `settings.local.php` file during installation.
+
+### Smart Garbage Collection
+To ensure orphaned databases are deleted when their corresponding pull requests are merged, you must configure Git to automatically prune deleted remote branches:
+
+```bash
+git config --global fetch.prune true
+```
+Once configured, the add-on will automatically sweep MariaDB and delete orphaned databases.
 
 ## Installation
 Run this command from the root of your DDEV project:
