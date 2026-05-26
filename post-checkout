@@ -28,9 +28,9 @@ if [ ! -f ".ddev/config.yaml" ]; then
   exit 0
 fi
 
-if [ ! -f ".ddev/commands/host/branch-db-provision" ] || [ ! -f ".ddev/commands/host/branch-db-drop" ]; then
+if [ ! -f ".ddev/commands/host/.dbranch-provision" ] || [ ! -f ".ddev/commands/host/.dbranch-drop" ]; then
   exit 0
 fi
 
-ddev branch-db-provision || true
-ddev branch-db-drop orphaned || true
+ddev dbranch provision || true
+ddev dbranch drop orphaned || true

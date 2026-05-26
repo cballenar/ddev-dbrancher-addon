@@ -2,8 +2,8 @@
 #ddev-generated
 
 ## Description: Initializes a branch database with the latest local dump and runs updates.
-## Usage: branch-db-init [database_name]
-## Example: "ddev branch-db-init db_feature_xyz"
+## Usage: .brancher-init [database_name]
+## Example: "ddev brancher init db_feature_xyz"
 
 cd "$DDEV_APPROOT" || exit 1
 
@@ -12,8 +12,8 @@ DUMP_FILE="$2"
 
 # Allow custom configuration via a local config file
 DUMP_DIR="."
-if [ -f .ddev/branch-db-config ]; then
-  source .ddev/branch-db-config
+if [ -f .ddev/dbranch-config ]; then
+  source .ddev/dbranch-config
 fi
 # Ensure it isn't empty
 DUMP_DIR="${DUMP_DIR:-.}"

@@ -1,4 +1,4 @@
-name: branch-isolation
+name: dbranch
 project_files:
   - post-checkout
   - settings.snippet.php

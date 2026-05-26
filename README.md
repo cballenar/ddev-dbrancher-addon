@@ -1,4 +1,4 @@
-# DDEV Branch Databases Add-on
+# DBrancher (DDEV Add-on)
 
 A DDEV add-on that brings isolated, dynamic database routing to your Drupal feature branches. Useful for tricky setups that can't easily use worktrees.
 
@@ -23,17 +23,16 @@ ddev add-on get github-username/ddev-branch-databases
 ```
 
 ## Manual Commands
-- `ddev branch-db-list`: Lists all isolated databases and their statuses (Active, Orphaned, etc).
-- `ddev branch-db-provision`: Manually triggers the checkout provisioner.
-- `ddev branch-db-drop <branch_name>`: Drops the isolated database for a specific branch.
-- `ddev branch-db-drop current`: Drops the isolated database for your active branch.
-- `ddev branch-db-drop orphaned`: Forces a garbage collection scan for orphaned databases.
-- `ddev branch-db-init [database_name] [file_path]`: Imports a database dump and runs the Drupal update pipeline (`updb`, `cim`, `cr`). If no `file_path` is provided, it automatically finds the newest `.sql.gz` dump in your customized search directory.
+- `ddev dbranch list`: Lists all isolated databases and their statuses (Active, Orphaned, etc).
+- `ddev dbranch drop <branch_name>`: Drops the isolated database for a specific branch.
+- `ddev dbranch drop current`: Drops the isolated database for your active branch.
+- `ddev dbranch drop orphaned`: Forces a garbage collection scan for orphaned databases.
+- `ddev dbranch init [database_name] [file_path]`: Imports a database dump and runs the Drupal update pipeline (`updb`, `cim`, `cr`). If no `file_path` is provided, it automatically finds the newest `.sql.gz` dump in your customized search directory.
 
 ## Customization
-By default, the `branch-db-init` script searches your project root for database dumps. If your team stores database dumps in a specific folder (e.g., `db_dumps/`), you can customize the search directory by creating a `.ddev/branch-db-config` file:
+By default, the `dbranch init` script searches your project root for database dumps. If your team stores database dumps in a specific folder (e.g., `db_dumps/`), you can customize the search directory by creating a `.ddev/dbranch-config` file:
 
 ```bash
-# .ddev/branch-db-config
+# .ddev/dbranch-config
 DUMP_DIR="db_dumps"
 ```

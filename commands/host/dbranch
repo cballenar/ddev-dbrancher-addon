@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Manage isolated branch databases (list, init, drop, provision)
+## Usage: dbranch <command> [args...]
+## Example: "ddev dbranch list"
+
+COMMAND="$1"
+shift
+
+if [ -z "$COMMAND" ]; then
+  echo "Usage: ddev dbranch <list|init|drop> [args...]"
+  echo "Run 'ddev dbranch <command> --help' for more info."
+  exit 1
+fi
+
+SCRIPT_PATH="$DDEV_APPROOT/.ddev/commands/host/.dbranch-$COMMAND"
+
+if [ ! -f "$SCRIPT_PATH" ]; then
+  echo "Error: Unknown dbranch command '$COMMAND'."
+  echo "Available commands: list, init, drop"
+  exit 1
+fi
+
+# Execute the corresponding hidden script, passing along any remaining arguments
+bash "$SCRIPT_PATH" "$@"

@@ -2,15 +2,15 @@
 #ddev-generated
 
 ## Description: Drops the isolated database for a specified branch to free up space.
-## Usage: branch-db-drop <branch_name | current | orphaned>
-## Example: "ddev branch-db-drop orphaned"
+## Usage: .brancher-drop <branch_name | current | orphaned>
+## Example: "ddev brancher drop orphaned"
 
 # When executing a ddev host command, $DDEV_APPROOT is the project root.
 cd "$DDEV_APPROOT" || exit 1
 
 if [ -z "$1" ]; then
   echo "Error: A target must be specified."
-  echo "Usage: ddev branch-db-drop <branch_name | current | orphaned>"
+  echo "Usage: ddev brancher drop <branch_name | current | orphaned>"
   exit 1
 fi
 
