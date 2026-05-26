@@ -6,9 +6,31 @@ if [ "$3" != "1" ]; then
   exit 0
 fi
 
-if ! command -v ddev &> /dev/null; then
+if ! command -v ddev >/dev/null 2>&1; then
   exit 0
 fi
 
-ddev branch-db-provision
-ddev branch-db-drop orphaned
+# If git isn't available or we're not in a worktree, do nothing.
+if ! command -v git >/dev/null 2>&1; then
+  exit 0
+fi
+
+TOPLEVEL="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+if [ -z "$TOPLEVEL" ] || [ ! -d "$TOPLEVEL" ]; then
+  exit 0
+fi
+
+cd "$TOPLEVEL" || exit 0
+
+# Guard: only run inside a DDEV project that has this add-on's commands installed.
+# This prevents the repo-wide hook from running in other worktrees.
+if [ ! -f ".ddev/config.yaml" ]; then
+  exit 0
+fi
+
+if [ ! -f ".ddev/commands/host/branch-db-provision" ] || [ ! -f ".ddev/commands/host/branch-db-drop" ]; then
+  exit 0
+fi
+
+ddev branch-db-provision || true
+ddev branch-db-drop orphaned || true
