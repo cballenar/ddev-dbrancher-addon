@@ -7,7 +7,18 @@
 
 cd "$DDEV_APPROOT" || exit 1
 
-DB_NAME=${1:-db}
+# If no DB name is provided, determine it from the current branch
+if [ -z "$1" ]; then
+  BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" || "$BRANCH" == "master" || "$BRANCH" == "HEAD" || -z "$BRANCH" ]]; then
+    DB_NAME="db"
+  else
+    DB_NAME="db_$(echo "$BRANCH" | sed -e 's/[^a-zA-Z0-9_]/_/g')"
+  fi
+else
+  DB_NAME="$1"
+fi
+
 DUMP_FILE="$2"
 
 # Allow custom configuration via a local config file
@@ -15,7 +26,6 @@ DUMP_DIR="."
 if [ -f .ddev/dbranch-config ]; then
   source .ddev/dbranch-config
 fi
-# Ensure it isn't empty
 DUMP_DIR="${DUMP_DIR:-.}"
 
 if [ -z "$DUMP_FILE" ]; then
@@ -32,8 +42,11 @@ fi
 echo "Importing dump '$DUMP_FILE' into database '$DB_NAME'..."
 ddev import-db --database="$DB_NAME" --file="$DUMP_FILE"
 
-echo "Running Drupal updates and config import..."
-ddev drush updb -y
-ddev drush cim -y
-ddev drush cr
-ddev drush uli
+# Only run updates if drush is available
+if ddev drush --version >/dev/null 2>&1; then
+  echo "Running Drupal updates and config import..."
+  ddev drush updb -y
+  ddev drush cim -y
+  ddev drush cr
+  ddev drush uli
+fi
