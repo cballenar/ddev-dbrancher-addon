@@ -2,8 +2,8 @@
 #ddev-generated
 
 ## Description: Lists isolated databases created for branches.
-## Usage: .brancher-list
-## Example: "ddev brancher list"
+## Usage: .dbranch-list
+## Example: "ddev dbranch list"
 
 cd "$DDEV_APPROOT" || exit 1
 
@@ -42,6 +42,6 @@ for DB in $EXISTING_DBS; do
   elif echo "$VALID_DBS" | grep -qw "$DB"; then
     echo "⚪ $DB"
   else
-    echo "🔴 $DB (Orphaned - run 'ddev brancher drop orphaned' to clean up)"
+    echo "🔴 $DB (Orphaned - run 'ddev dbranch drop orphaned' to clean up)"
   fi
 done

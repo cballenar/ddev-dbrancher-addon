@@ -2,8 +2,8 @@
 #ddev-generated
 
 ## Description: Initializes a branch database with the latest local dump and runs updates.
-## Usage: .brancher-init [database_name]
-## Example: "ddev brancher init db_feature_xyz"
+## Usage: .dbranch-init [database_name]
+## Example: "ddev dbranch init db_feature_xyz"
 
 cd "$DDEV_APPROOT" || exit 1
 
@@ -24,7 +24,8 @@ if [ -z "$DUMP_FILE" ]; then
 fi
 
 if [ -z "$DUMP_FILE" ] || [ ! -f "$DUMP_FILE" ]; then
-  echo "Error: Could not find a valid .sql.gz dump."
+  echo "Error: Could not find a valid .sql.gz dump in '$DUMP_DIR'."
+  echo "Please ensure a database dump exists or configure the search directory in .ddev/dbranch-config"
   exit 1
 fi
 

@@ -2,8 +2,8 @@
 #ddev-generated
 
 ## Description: Provisions an isolated database for the current Git branch.
-## Usage: .brancher-provision
-## Example: "ddev brancher provision"
+## Usage: .dbranch-provision
+## Example: "ddev dbranch provision"
 
 cd "$DDEV_APPROOT" || exit 1
 
@@ -26,7 +26,7 @@ if [[ "$BRANCH" != "develop" && "$BRANCH" != "main" && "$BRANCH" != "master" && 
 
   if [ -z "$DB_EXISTS" ]; then
     echo "Database '$DB_NAME' does not exist."
-    
+
     # Safely prompt the user if they are running in an interactive terminal
     if exec < /dev/tty 2>/dev/null; then
       echo -n "Provision an isolated database for this branch? [y/N] (Defaults to N in 10s): " > /dev/tty
@@ -41,9 +41,9 @@ if [[ "$BRANCH" != "develop" && "$BRANCH" != "main" && "$BRANCH" != "master" && 
       echo "Provisioning a new isolated environment..."
       echo "Creating database in MariaDB..."
       ddev mysql -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
-      
-      echo "Calling ddev brancher init to populate the database..."
-      ddev brancher init "$DB_NAME"
+
+      echo "Calling ddev dbranch init to populate the database..."
+      ddev dbranch init "$DB_NAME"
     else
       echo "Skipped. Your Drupal site will safely fall back to the main DB."
     fi
