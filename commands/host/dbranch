@@ -1,26 +1,59 @@
 #!/usr/bin/env bash
 #ddev-generated
 
-## Description: Manage isolated branch databases (list, init, drop, provision)
+## Description: Manage isolated branch databases.
 ## Usage: dbranch <command> [args...]
 ## Example: "ddev dbranch list"
 
-COMMAND="$1"
-shift
+# --- Main help function ---
+show_help() {
+  echo "DBrancher: A DDEV add-on for isolated branch databases."
+  echo ""
+  echo "Usage: ddev dbranch <command> [options]"
+  echo ""
+  echo "COMMANDS:"
+  echo "  list"
+  echo "      Lists all isolated databases and their statuses (Active, Orphaned, etc)."
+  echo ""
+  echo "  init [dump_path]"
+  echo "      Initializes the current branch's database from a specific dump file."
+  echo "      If no path is given, it finds the latest .sql.gz dump automatically."
+  echo "      Example: ddev dbranch init ../latest.sql.gz"
+  echo ""
+  echo "  drop <target>"
+  echo "      Drops a database. Target can be a branch name, 'current', or 'orphaned'."
+  echo "      Example: ddev dbranch drop orphaned"
+  echo ""
+  echo "  help"
+  echo "      Shows this help message."
+  echo ""
+}
 
-if [ -z "$COMMAND" ]; then
-  echo "Usage: ddev dbranch <list|init|drop> [args...]"
-  echo "Run 'ddev dbranch <command> --help' for more info."
-  exit 1
-fi
+# --- Command routing logic ---
 
-SCRIPT_PATH="$DDEV_APPROOT/.ddev/commands/host/.dbranch-$COMMAND"
+# Default to 'help' if no command is provided
+COMMAND="${1:-help}"
 
-if [ ! -f "$SCRIPT_PATH" ]; then
-  echo "Error: Unknown dbranch command '$COMMAND'."
-  echo "Available commands: list, init, drop"
-  exit 1
-fi
-
-# Execute the corresponding hidden script, passing along any remaining arguments
-bash "$SCRIPT_PATH" "$@"
+case "$COMMAND" in
+  # Public commands
+  list|init|drop)
+    shift
+    SCRIPT_PATH="$DDEV_APPROOT/.ddev/commands/host/.dbranch-$COMMAND"
+    bash "$SCRIPT_PATH" "$@"
+    ;;
+  # Internal command used by git hooks
+  provision)
+    shift
+    SCRIPT_PATH="$DDEV_APPROOT/.ddev/commands/host/.dbranch-provision"
+    bash "$SCRIPT_PATH" "$@"
+    ;;
+  help)
+    show_help
+    ;;
+  *)
+    echo "Error: Unknown command '$COMMAND'."
+    echo ""
+    show_help
+    exit 1
+    ;;
+esac
