@@ -18,8 +18,9 @@ Once configured, the add-on will automatically sweep MariaDB and delete orphaned
 
 ## Installation
 Run this command from the root of your DDEV project:
+
 ```bash
-ddev add-on get github-username/ddev-branch-databases
+ddev add-on get cballenar/ddev-dbrancher-addon
 ```
 
 ## Manual Commands
