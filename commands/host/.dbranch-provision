@@ -43,7 +43,7 @@ if [[ "$BRANCH" != "develop" && "$BRANCH" != "main" && "$BRANCH" != "master" && 
       ddev mysql -e "CREATE DATABASE IF NOT EXISTS $DB_NAME;"
 
       echo "Calling ddev dbranch init to populate the database..."
-      ddev dbranch init "$DB_NAME"
+      ddev dbranch init
     else
       echo "Skipped. Your Drupal site will safely fall back to the main DB."
     fi

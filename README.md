@@ -27,7 +27,7 @@ ddev add-on get github-username/ddev-branch-databases
 - `ddev dbranch drop <branch_name>`: Drops the isolated database for a specific branch.
 - `ddev dbranch drop current`: Drops the isolated database for your active branch.
 - `ddev dbranch drop orphaned`: Forces a garbage collection scan for orphaned databases.
-- `ddev dbranch init [database_name] [file_path]`: Imports a database dump and runs the Drupal update pipeline (`updb`, `cim`, `cr`). If no `file_path` is provided, it automatically finds the newest `.sql.gz` dump in your customized search directory.
+- `ddev dbranch init [file_path]`: Imports a database dump and runs the Drupal update pipeline (`updb`, `cim`, `cr`). If no `file_path` is provided, it automatically finds the newest `.sql.gz` dump in your customized search directory.
 
 ## Customization
 By default, the `dbranch init` script searches your project root for database dumps. If your team stores database dumps in a specific folder (e.g., `db_dumps/`), you can customize the search directory by creating a `.ddev/dbranch-config` file:

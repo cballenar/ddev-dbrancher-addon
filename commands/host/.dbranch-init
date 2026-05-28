@@ -1,40 +1,43 @@
 #!/usr/bin/env bash
 #ddev-generated
 
-## Description: Initializes a branch database with the latest local dump and runs updates.
-## Usage: .dbranch-init [database_name]
-## Example: "ddev dbranch init db_feature_xyz"
+## Description: Initializes the current branch's database from a dump.
+## Usage: .dbranch-init [dump_path]
+## Example: "ddev dbranch init ../latest.sql.gz"
 
 cd "$DDEV_APPROOT" || exit 1
 
-# If no DB name is provided, determine it from the current branch
-if [ -z "$1" ]; then
-  BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-  if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" || "$BRANCH" == "master" || "$BRANCH" == "HEAD" || -z "$BRANCH" ]]; then
-    DB_NAME="db"
-  else
-    DB_NAME="db_$(echo "$BRANCH" | sed -e 's/[^a-zA-Z0-9_]/_/g')"
-  fi
+# The first argument is an optional dump file path.
+DUMP_FILE_ARG="$1"
+
+# Determine the DB name from the current branch.
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" || "$BRANCH" == "master" || "$BRANCH" == "HEAD" || -z "$BRANCH" ]]; then
+  DB_NAME="db"
 else
-  DB_NAME="$1"
+  DB_NAME="db_$(echo "$BRANCH" | sed -e 's/[^a-zA-Z0-9_]/_/g')"
 fi
 
-DUMP_FILE="$2"
+# If a dump file was provided as an argument, use it.
+# Otherwise, find the latest one.
+if [ -n "$DUMP_FILE_ARG" ]; then
+  DUMP_FILE="$DUMP_FILE_ARG"
+else
+  # Allow custom configuration for the default dump directory
+  DUMP_DIR="."
+  if [ -f .ddev/dbranch-config ]; then
+    source .ddev/dbranch-config
+  fi
+  DUMP_DIR="${DUMP_DIR:-.}"
 
-# Allow custom configuration via a local config file
-DUMP_DIR="."
-if [ -f .ddev/dbranch-config ]; then
-  source .ddev/dbranch-config
-fi
-DUMP_DIR="${DUMP_DIR:-.}"
-
-if [ -z "$DUMP_FILE" ]; then
   echo "Looking for the latest database dump (*.sql.gz) in '$DUMP_DIR'..."
   DUMP_FILE=$(ls -t "$DUMP_DIR"/*.sql.gz 2>/dev/null | head -n 1)
 fi
 
 if [ -z "$DUMP_FILE" ] || [ ! -f "$DUMP_FILE" ]; then
-  echo "Error: Could not find a valid .sql.gz dump in '$DUMP_DIR'."
+  # Use DUMP_DIR in the error message if we searched for the file.
+  SEARCH_PATH=${DUMP_FILE_ARG:-$DUMP_DIR}
+  echo "Error: Could not find a valid .sql.gz dump in '$SEARCH_PATH'."
   echo "Please ensure a database dump exists or configure the search directory in .ddev/dbranch-config"
   exit 1
 fi
