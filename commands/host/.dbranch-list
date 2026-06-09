@@ -12,7 +12,21 @@ if ! ddev describe | grep -q 'OK'; then
   exit 1
 fi
 
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+TARGET_DIR="${DDEV_APPROOT}"
+if [ -f .ddev/.dbranch-config ]; then
+  ACTIVE_WORKTREE=$(grep "^ACTIVE_WORKTREE=" .ddev/.dbranch-config | cut -d '=' -f 2)
+  if [ -n "$ACTIVE_WORKTREE" ] && [ -d "${DDEV_APPROOT}/$ACTIVE_WORKTREE" ]; then
+    TARGET_DIR="${DDEV_APPROOT}/$ACTIVE_WORKTREE"
+  fi
+fi
+
+CURRENT_BRANCH=$(git -C "$TARGET_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null)
+if [ -f .ddev/.dbranch-config ]; then
+  source .ddev/.dbranch-config
+  if [ -n "$ACTIVE_BRANCH" ]; then
+    CURRENT_BRANCH="$ACTIVE_BRANCH"
+  fi
+fi
 
 if [[ "$CURRENT_BRANCH" == "develop" || "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" || "$CURRENT_BRANCH" == "HEAD" ]]; then
   CURRENT_DB="db"
@@ -21,7 +35,7 @@ else
 fi
 
 # Get active branches (excluding [gone]) to determine which DBs are valid
-ACTIVE_BRANCHES=$(git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$2 != "[gone]" {print $1}')
+ACTIVE_BRANCHES=$(git -C "$TARGET_DIR" for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$2 != "[gone]" {print $1}')
 VALID_DBS=$(echo "$ACTIVE_BRANCHES" | sed -e 's/[^a-zA-Z0-9_]/_/g' | awk '{print "db_"$1}')
 VALID_DBS="$VALID_DBS db db_develop db_main db_master"
 

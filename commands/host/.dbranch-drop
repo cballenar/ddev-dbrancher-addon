@@ -16,11 +16,19 @@ fi
 
 TARGET="$1"
 
+TARGET_DIR="${DDEV_APPROOT}"
+if [ -f .ddev/.dbranch-config ]; then
+  ACTIVE_WORKTREE=$(grep "^ACTIVE_WORKTREE=" .ddev/.dbranch-config | cut -d '=' -f 2)
+  if [ -n "$ACTIVE_WORKTREE" ] && [ -d "${DDEV_APPROOT}/$ACTIVE_WORKTREE" ]; then
+    TARGET_DIR="${DDEV_APPROOT}/$ACTIVE_WORKTREE"
+  fi
+fi
+
 if [ "$TARGET" == "orphaned" ]; then
   echo "---"
   echo "Scanning for orphaned isolated databases..."
   # Get all local branches, EXCLUDING those that are tracking a deleted remote branch
-  ACTIVE_BRANCHES=$(git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$2 != "[gone]" {print $1}')
+  ACTIVE_BRANCHES=$(git -C "$TARGET_DIR" for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$2 != "[gone]" {print $1}')
   VALID_DBS=$(echo "$ACTIVE_BRANCHES" | sed -e 's/[^a-zA-Z0-9_]/_/g' | awk '{print "db_"$1}')
   # Always keep default databases
   VALID_DBS="$VALID_DBS db db_develop db_main db_master"
@@ -37,7 +45,13 @@ if [ "$TARGET" == "orphaned" ]; then
 fi
 
 if [ "$TARGET" == "current" ]; then
-  BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  BRANCH=$(git -C "$TARGET_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [ -f .ddev/.dbranch-config ]; then
+    source .ddev/.dbranch-config
+    if [ -n "$ACTIVE_BRANCH" ]; then
+      BRANCH="$ACTIVE_BRANCH"
+    fi
+  fi
 else
   BRANCH="$TARGET"
 fi

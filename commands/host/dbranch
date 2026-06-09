@@ -24,6 +24,10 @@ show_help() {
   echo "      Drops a database. Target can be a branch name, 'current', or 'orphaned'."
   echo "      Example: ddev dbranch drop orphaned"
   echo ""
+  echo "  switch <worktree-folder-name>"
+  echo "      Switches the active workspace to the specified branch directory."
+  echo "      Automatically provisions a new database if needed."
+  echo ""
   echo "  help"
   echo "      Shows this help message."
   echo ""
@@ -36,7 +40,7 @@ COMMAND="${1:-help}"
 
 case "$COMMAND" in
   # Public commands
-  list|init|drop)
+  list|init|drop|switch)
     shift
     SCRIPT_PATH="$DDEV_APPROOT/.ddev/commands/host/.dbranch-$COMMAND"
     bash "$SCRIPT_PATH" "$@"

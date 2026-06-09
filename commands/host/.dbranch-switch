@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Switches the active worktree and provisions database if needed.
+## Usage: .dbranch-switch <worktree-folder-name>
+
+cd "$DDEV_APPROOT" || exit 1
+
+if [ -z "$1" ]; then
+  echo "Usage: ddev dbranch switch <worktree-folder-name>"
+  exit 1
+fi
+
+FOLDER_NAME=$(echo "$1" | tr '/' '-')
+# True branch: dash to slash only on first occurrence
+TRUE_BRANCH="${FOLDER_NAME/-//}"
+
+# Check if target directory exists
+if [ ! -d "$FOLDER_NAME" ]; then
+  echo "Error: Directory '$FOLDER_NAME' does not exist."
+  exit 1
+fi
+
+# Read old worktree before updating config
+if [ -f .ddev/.dbranch-config ]; then
+  OLD_WORKTREE=$(grep "^ACTIVE_WORKTREE=" .ddev/.dbranch-config | cut -d '=' -f 2)
+fi
+
+# Update config
+if [ -f .ddev/.dbranch-config ]; then
+  grep -q "^ACTIVE_WORKTREE=" .ddev/.dbranch-config || echo "ACTIVE_WORKTREE=" >> .ddev/.dbranch-config
+  grep -q "^ACTIVE_BRANCH=" .ddev/.dbranch-config || echo "ACTIVE_BRANCH=" >> .ddev/.dbranch-config
+  
+  if sed --version >/dev/null 2>&1; then
+    sed -i "s|^ACTIVE_WORKTREE=.*|ACTIVE_WORKTREE=$FOLDER_NAME|" .ddev/.dbranch-config
+    sed -i "s|^ACTIVE_BRANCH=.*|ACTIVE_BRANCH=$TRUE_BRANCH|" .ddev/.dbranch-config
+  else
+    sed -i '' "s|^ACTIVE_WORKTREE=.*|ACTIVE_WORKTREE=$FOLDER_NAME|" .ddev/.dbranch-config
+    sed -i '' "s|^ACTIVE_BRANCH=.*|ACTIVE_BRANCH=$TRUE_BRANCH|" .ddev/.dbranch-config
+  fi
+else
+  echo "ACTIVE_WORKTREE=$FOLDER_NAME" > .ddev/.dbranch-config
+  echo "ACTIVE_BRANCH=$TRUE_BRANCH" >> .ddev/.dbranch-config
+fi
+
+# Update docroot in DDEV config natively
+CURRENT_DOCROOT=$(grep "^docroot:" .ddev/config.yaml | head -1 | awk -F':' '{print $2}' | tr -d ' "' | tr -d "'")
+if [ -n "$OLD_WORKTREE" ] && [[ "$CURRENT_DOCROOT" == "$OLD_WORKTREE"* ]]; then
+  NEW_DOCROOT="${CURRENT_DOCROOT/#$OLD_WORKTREE/$FOLDER_NAME}"
+  ddev config --docroot="$NEW_DOCROOT" >/dev/null 2>&1
+else
+  # Fallback if pattern matching fails or OLD_WORKTREE is empty
+  ddev config --docroot="$FOLDER_NAME" >/dev/null 2>&1
+fi
+
+echo "Switched workspace to $FOLDER_NAME"
+
+# Automatically provision if needed
+bash "$DDEV_APPROOT/.ddev/commands/host/.dbranch-provision"
+
+echo "Restarting DDEV to apply routing changes..."
+ddev restart

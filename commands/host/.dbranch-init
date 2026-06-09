@@ -10,8 +10,22 @@ cd "$DDEV_APPROOT" || exit 1
 # The first argument is an optional dump file path.
 DUMP_FILE_ARG="$1"
 
+TARGET_DIR="${DDEV_APPROOT}"
+if [ -f .ddev/.dbranch-config ]; then
+  ACTIVE_WORKTREE=$(grep "^ACTIVE_WORKTREE=" .ddev/.dbranch-config | cut -d '=' -f 2)
+  if [ -n "$ACTIVE_WORKTREE" ] && [ -d "${DDEV_APPROOT}/$ACTIVE_WORKTREE" ]; then
+    TARGET_DIR="${DDEV_APPROOT}/$ACTIVE_WORKTREE"
+  fi
+fi
+
 # Determine the DB name from the current branch.
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+BRANCH=$(git -C "$TARGET_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null)
+if [ -f .ddev/.dbranch-config ]; then
+  source .ddev/.dbranch-config
+  if [ -n "$ACTIVE_BRANCH" ]; then
+    BRANCH="$ACTIVE_BRANCH"
+  fi
+fi
 if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" || "$BRANCH" == "master" || "$BRANCH" == "HEAD" || -z "$BRANCH" ]]; then
   DB_NAME="db"
 else

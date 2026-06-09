@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+#ddev-generated
+
+## Description: Convert an existing standard DDEV repo layout into a dbrancher bare repo hub
+## Usage: dbranch-convert
+
+echo "Stopping DDEV before conversion..."
+ddev stop
+
+TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -z "$TOPLEVEL" ]; then
+  echo "Error: Not a git repository."
+  exit 1
+fi
+
+cd "$TOPLEVEL" || exit 1
+
+if [ -f .ddev/.dbranch-config ] && grep -q "ACTIVE_WORKTREE=" .ddev/.dbranch-config; then
+  echo "Error: It seems this project is already converted to a dbrancher hub."
+  exit 1
+fi
+
+if ! git diff-index --quiet HEAD --; then
+  echo "Error: You have modified tracked files. Please commit or stash them before converting."
+  exit 1
+fi
+
+# Prompt for primary branch
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if exec < /dev/tty 2>/dev/null; then
+  echo -n "What is the name of your primary branch? [$CURRENT_BRANCH]: " > /dev/tty
+  read -t 60 PRIMARY_BRANCH
+  echo "" > /dev/tty
+fi
+PRIMARY_BRANCH=${PRIMARY_BRANCH:-$CURRENT_BRANCH}
+
+# Verify and checkout
+if [ "$CURRENT_BRANCH" != "$PRIMARY_BRANCH" ]; then
+  echo "Checking out primary branch: $PRIMARY_BRANCH..."
+  if ! git checkout "$PRIMARY_BRANCH"; then
+    echo "Error: Failed to checkout $PRIMARY_BRANCH. Please ensure it exists and is clean."
+    exit 1
+  fi
+fi
+
+echo "Converting repository into a bare repo hub layout..."
+
+BASENAME=$(basename "$TOPLEVEL")
+cd ..
+mv "$BASENAME" "${BASENAME}_old"
+mkdir "$BASENAME"
+cd "$BASENAME"
+
+# Move the .git folder to the root of the new hub
+mv "../${BASENAME}_old/.git" .
+
+# Make it a bare repository
+git config --local core.bare true
+
+# Create the primary worktree
+echo "Creating the primary '$PRIMARY_BRANCH' worktree..."
+git worktree add "$PRIMARY_BRANCH" "$PRIMARY_BRANCH"
+
+# Synchronize all existing files (including untracked like .ddev, vendor) to the new worktree
+echo "Migrating files to the '$PRIMARY_BRANCH' worktree (this may take a moment)..."
+rsync -a "../${BASENAME}_old/" "$PRIMARY_BRANCH/"
+
+# Cleanup the old directory
+rm -rf "../${BASENAME}_old"
+
+# Set up the hub structure
+echo "Configuring the hub structure..."
+ln -s "$PRIMARY_BRANCH" current
+
+# Create symlink for .ddev so it's accessible from the root but tracked in the primary branch
+ln -s "$PRIMARY_BRANCH/.ddev" .ddev
+
+mkdir -p .ddev_backups
+
+# Initialize the config file inside the tracked .ddev folder
+echo "ACTIVE_WORKTREE=$PRIMARY_BRANCH" > "$PRIMARY_BRANCH/.ddev/.dbranch-config"
+echo "ACTIVE_BRANCH=$PRIMARY_BRANCH" >> "$PRIMARY_BRANCH/.ddev/.dbranch-config"
+
+# Install git go alias
+echo "Installing 'git go' alias..."
+git config --local alias.go "!f() { \
+  if [ -z \"\$1\" ]; then \
+    echo \"Usage: git go <branch-or-folder>\"; \
+    return 1; \
+  fi; \
+  CLEAN_FOLDER=\$(echo \"\$1\" | tr '/' '-'); \
+  ddev dbranch switch \"\$CLEAN_FOLDER\" && cd \"../\$CLEAN_FOLDER\"; \
+}; f"
+
+# Update DDEV docroot to point to the active branch
+echo "Updating DDEV docroot to point to active branch..."
+CONFIG_FILE="$PRIMARY_BRANCH/.ddev/config.yaml"
+if grep -q "^docroot:" "$CONFIG_FILE"; then
+  OLD_DOCROOT=$(grep "^docroot:" "$CONFIG_FILE" | head -1 | awk -F':' '{print $2}' | tr -d ' "' | tr -d "'")
+else
+  OLD_DOCROOT=""
+fi
+
+if [[ "$OLD_DOCROOT" != "$PRIMARY_BRANCH"* ]]; then
+  if [ -z "$OLD_DOCROOT" ]; then
+    NEW_DOCROOT="$PRIMARY_BRANCH"
+  else
+    # Strip any existing leading folder if they are re-converting
+    STRIPPED_DOCROOT=$(basename "$OLD_DOCROOT")
+    if [ "$STRIPPED_DOCROOT" == "docroot" ] || [ "$STRIPPED_DOCROOT" == "web" ]; then
+      NEW_DOCROOT="$PRIMARY_BRANCH/$STRIPPED_DOCROOT"
+    else
+      NEW_DOCROOT="$PRIMARY_BRANCH/$OLD_DOCROOT"
+    fi
+  fi
+  ddev config --docroot="$NEW_DOCROOT" >/dev/null 2>&1
+fi
+
+echo "Conversion complete! Restarting DDEV..."
+ddev start

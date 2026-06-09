@@ -4,7 +4,18 @@
  * DDEV Branch-Routed Database Override
  * Automatically forces Drupal to use an isolated database for feature branches.
  */
-$branch = trim(exec('git rev-parse --abbrev-ref HEAD 2>/dev/null'));
+$branch = 'main';
+$app_root = __DIR__;
+while ($app_root !== '/' && !is_dir($app_root . '/.ddev')) {
+  $app_root = dirname($app_root);
+}
+$config_file = $app_root . '/.ddev/.dbranch-config';
+if (file_exists($config_file)) {
+  $config = parse_ini_file($config_file);
+  if (isset($config['ACTIVE_BRANCH'])) {
+    $branch = $config['ACTIVE_BRANCH'];
+  }
+}
 if ($branch && !in_array($branch, ['develop', 'master', 'main', 'HEAD'])) {
   $branch_db_name = 'db_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $branch);
   

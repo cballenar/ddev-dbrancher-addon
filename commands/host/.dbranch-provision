@@ -13,8 +13,21 @@ if ! ddev describe | grep -q 'OK'; then
   exit 0
 fi
 
-# Get the branch name
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
+TARGET_DIR="${DDEV_APPROOT}"
+if [ -f .ddev/.dbranch-config ]; then
+  ACTIVE_WORKTREE=$(grep "^ACTIVE_WORKTREE=" .ddev/.dbranch-config | cut -d '=' -f 2)
+  if [ -n "$ACTIVE_WORKTREE" ] && [ -d "${DDEV_APPROOT}/$ACTIVE_WORKTREE" ]; then
+    TARGET_DIR="${DDEV_APPROOT}/$ACTIVE_WORKTREE"
+  fi
+fi
+BRANCH=$(git -C "$TARGET_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+if [ -f .ddev/.dbranch-config ]; then
+  source .ddev/.dbranch-config
+  if [ -n "$ACTIVE_BRANCH" ]; then
+    BRANCH="$ACTIVE_BRANCH"
+  fi
+fi
 
 # If we are on develop, main, or master, do nothing for provisioning
 if [[ "$BRANCH" != "develop" && "$BRANCH" != "main" && "$BRANCH" != "master" && "$BRANCH" != "HEAD" ]]; then
