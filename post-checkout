@@ -22,6 +22,11 @@ fi
 
 cd "$TOPLEVEL" || exit 0
 
+# If git was invoked from a subdirectory, move into it to find the DDEV project
+if [ -n "$GIT_PREFIX" ]; then
+  cd "$GIT_PREFIX" || exit 0
+fi
+
 # Guard: only run inside a DDEV project that has this add-on's commands installed.
 # This prevents the repo-wide hook from running in other worktrees.
 if [ ! -f ".ddev/config.yaml" ]; then

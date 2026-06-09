@@ -4,8 +4,8 @@ project_files:
   - settings.snippet.php
   - commands
 post_install_actions:
-  - "mkdir -p ../.git/hooks"
-  - "cp post-checkout ../.git/hooks/post-checkout && chmod +x ../.git/hooks/post-checkout"
+  - "GIT_DIR=$(git rev-parse --absolute-git-dir) && mkdir -p \"$GIT_DIR/hooks\""
+  - "GIT_DIR=$(git rev-parse --absolute-git-dir) && cp post-checkout \"$GIT_DIR/hooks/post-checkout\" && chmod +x \"$GIT_DIR/hooks/post-checkout\""
   - |
     # Inject the PHP routing logic if it doesn't already exist
     if [ -f ../docroot/sites/default/settings.local.php ]; then
