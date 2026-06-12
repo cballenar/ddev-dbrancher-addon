@@ -22,8 +22,20 @@ if [ "$TARGET" == "orphaned" ]; then
   # Get all local branches, EXCLUDING those that are tracking a deleted remote branch
   ACTIVE_BRANCHES=$(git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$2 != "[gone]" {print $1}')
   VALID_DBS=$(echo "$ACTIVE_BRANCHES" | sed -e 's/[^a-zA-Z0-9_]/_/g' | awk '{print "db_"$1}')
-  # Always keep default databases
-  VALID_DBS="$VALID_DBS db db_develop db_main db_master"
+  # Load config
+  PROTECTED_BRANCHES="develop,main,master,HEAD"
+  if [ -f .ddev/.dbranch-config ]; then
+    source .ddev/.dbranch-config
+  fi
+
+  # Always keep default databases and protected branches
+  IFS=',' read -ra PROT_ARR <<< "$PROTECTED_BRANCHES"
+  VALID_DBS="$VALID_DBS db"
+  for pb in "${PROT_ARR[@]}"; do
+    if [ "$pb" != "HEAD" ]; then
+      VALID_DBS="$VALID_DBS db_$(echo "$pb" | sed -e 's/[^a-zA-Z0-9_]/_/g')"
+    fi
+  done
 
   EXISTING_DBS=$(ddev mysql -N -e "SHOW DATABASES LIKE 'db\_%';" | grep -wv 'information_schema\|performance_schema\|mysql\|sys')
 
@@ -42,8 +54,16 @@ else
   BRANCH="$TARGET"
 fi
 
-if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
-  echo "Cannot delete main databases."
+# Load config (if not already loaded)
+if [ -z "$PROTECTED_BRANCHES" ]; then
+  PROTECTED_BRANCHES="develop,main,master,HEAD"
+  if [ -f .ddev/.dbranch-config ]; then
+    source .ddev/.dbranch-config
+  fi
+fi
+
+if [[ ",$PROTECTED_BRANCHES," == *",$BRANCH,"* ]]; then
+  echo "Cannot delete main or protected databases."
   exit 1
 fi
 

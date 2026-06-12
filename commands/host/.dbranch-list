@@ -12,9 +12,15 @@ if ! ddev describe | grep -q 'OK'; then
   exit 1
 fi
 
+# Load config
+PROTECTED_BRANCHES="develop,main,master,HEAD"
+if [ -f .ddev/.dbranch-config ]; then
+  source .ddev/.dbranch-config
+fi
+
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
 
-if [[ "$CURRENT_BRANCH" == "develop" || "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" || "$CURRENT_BRANCH" == "HEAD" ]]; then
+if [[ ",$PROTECTED_BRANCHES," == *",$CURRENT_BRANCH,"* || -z "$CURRENT_BRANCH" ]]; then
   CURRENT_DB="db"
 else
   CURRENT_DB="db_$(echo "$CURRENT_BRANCH" | sed -e 's/[^a-zA-Z0-9_]/_/g')"
@@ -23,7 +29,15 @@ fi
 # Get active branches (excluding [gone]) to determine which DBs are valid
 ACTIVE_BRANCHES=$(git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$2 != "[gone]" {print $1}')
 VALID_DBS=$(echo "$ACTIVE_BRANCHES" | sed -e 's/[^a-zA-Z0-9_]/_/g' | awk '{print "db_"$1}')
-VALID_DBS="$VALID_DBS db db_develop db_main db_master"
+
+# Add protected branches to VALID_DBS
+IFS=',' read -ra PROT_ARR <<< "$PROTECTED_BRANCHES"
+VALID_DBS="$VALID_DBS db"
+for pb in "${PROT_ARR[@]}"; do
+  if [ "$pb" != "HEAD" ]; then
+    VALID_DBS="$VALID_DBS db_$(echo "$pb" | sed -e 's/[^a-zA-Z0-9_]/_/g')"
+  fi
+done
 
 EXISTING_DBS=$(ddev mysql -N -e "SHOW DATABASES;" | grep -E '^db$|^db_')
 
@@ -35,9 +49,18 @@ if [ -z "$EXISTING_DBS" ]; then
 fi
 
 for DB in $EXISTING_DBS; do
+  is_protected=0
+  for pb in "${PROT_ARR[@]}"; do
+    pb_db="db_$(echo "$pb" | sed -e 's/[^a-zA-Z0-9_]/_/g')"
+    if [[ "$DB" == "db" || "$DB" == "$pb_db" ]]; then
+      is_protected=1
+      break
+    fi
+  done
+
   if [ "$DB" == "$CURRENT_DB" ]; then
     echo "🟢 $DB (Active: $CURRENT_BRANCH)"
-  elif [[ "$DB" == "db" || "$DB" == "db_develop" || "$DB" == "db_main" || "$DB" == "db_master" ]]; then
+  elif [ "$is_protected" -eq 1 ]; then
     echo "🟡 $DB (Protected)"
   elif echo "$VALID_DBS" | grep -qw "$DB"; then
     echo "⚪ $DB"

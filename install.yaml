@@ -14,4 +14,10 @@ post_install_actions:
         echo "Successfully injected database routing logic into settings.local.php!"
       fi
     fi
+
+    # Initialize unified config file
+    if [ ! -f .dbranch-config ]; then
+      echo "PROTECTED_BRANCHES=develop,main,master,HEAD" > .dbranch-config
+      echo "DUMP_DIR=tmp" >> .dbranch-config
+    fi
   - "rm -f post-checkout settings.snippet.php"

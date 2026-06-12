@@ -7,17 +7,32 @@
 
 cd "$DDEV_APPROOT" || exit 1
 
+# Load config
+PROTECTED_BRANCHES="develop,main,master,HEAD"
+if [ -f .ddev/.dbranch-config ]; then
+  source .ddev/.dbranch-config
+fi
+
+# Get the branch name
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+# Update config with active branch (ignore detached HEAD/empty)
+if [ "$BRANCH" != "HEAD" ] && [ -n "$BRANCH" ]; then
+  if [ -f .ddev/.dbranch-config ] && grep -q "^ACTIVE_BRANCH=" .ddev/.dbranch-config; then
+    sed -i '' "s|^ACTIVE_BRANCH=.*|ACTIVE_BRANCH=$BRANCH|" .ddev/.dbranch-config
+  else
+    echo "ACTIVE_BRANCH=$BRANCH" >> .ddev/.dbranch-config
+  fi
+fi
+
 # Ensure DDEV project is running before attempting MySQL queries
 if ! ddev describe | grep -q 'OK'; then
   echo "DDEV is not fully running. Skipping automatic database provisioning."
   exit 0
 fi
 
-# Get the branch name
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-
-# If we are on develop, main, or master, do nothing for provisioning
-if [[ "$BRANCH" != "develop" && "$BRANCH" != "main" && "$BRANCH" != "master" && "$BRANCH" != "HEAD" ]]; then
+# If we are on a protected branch, do nothing for provisioning
+if [[ ",$PROTECTED_BRANCHES," != *",$BRANCH,"* && -n "$BRANCH" ]]; then
   DB_NAME="db_$(echo "$BRANCH" | sed -e 's/[^a-zA-Z0-9_]/_/g')"
 
   echo "Checking if DDEV database '$DB_NAME' exists..."
