@@ -7,6 +7,12 @@
 
 cd "$DDEV_APPROOT" || exit 1
 
+# Ensure DDEV project is running before attempting MySQL queries or database imports
+if ! ddev describe | grep -q 'OK'; then
+  echo "Error: DDEV is not running. Cannot initialize database."
+  exit 1
+fi
+
 # Load config
 PROTECTED_BRANCHES="develop,main,master,HEAD"
 DUMP_DIR="."

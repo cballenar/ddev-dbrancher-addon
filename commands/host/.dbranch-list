@@ -39,7 +39,7 @@ for pb in "${PROT_ARR[@]}"; do
   fi
 done
 
-EXISTING_DBS=$(ddev mysql -N -e "SHOW DATABASES;" | grep -E '^db$|^db_')
+EXISTING_DBS=$(ddev mysql -N -e "SHOW DATABASES;" 2>/dev/null | grep -E '^db$|^db_')
 
 echo "--- Isolated Branch Databases ---"
 

@@ -16,6 +16,17 @@ fi
 
 TARGET="$1"
 
+# Ensure DDEV project is running before attempting MySQL queries
+if ! ddev describe | grep -q 'OK'; then
+  if [ "$TARGET" == "orphaned" ]; then
+    echo "DDEV is not fully running. Skipping orphaned database cleanup."
+    exit 0
+  else
+    echo "Error: DDEV is not running. Cannot drop database."
+    exit 1
+  fi
+fi
+
 if [ "$TARGET" == "orphaned" ]; then
   echo "---"
   echo "Scanning for orphaned isolated databases..."
@@ -37,7 +48,7 @@ if [ "$TARGET" == "orphaned" ]; then
     fi
   done
 
-  EXISTING_DBS=$(ddev mysql -N -e "SHOW DATABASES LIKE 'db\_%';" | grep -wv 'information_schema\|performance_schema\|mysql\|sys')
+  EXISTING_DBS=$(ddev mysql -N -e "SHOW DATABASES LIKE 'db\_%';" 2>/dev/null | grep -E '^db_')
 
   for EXIST_DB in $EXISTING_DBS; do
     if ! echo "$VALID_DBS" | grep -qw "$EXIST_DB"; then
